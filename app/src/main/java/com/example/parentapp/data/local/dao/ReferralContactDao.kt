@@ -16,14 +16,14 @@ interface ReferralContactDao {
     @Query("SELECT COUNT(*) FROM referral_contacts")
     suspend fun count(): Int
 
-    /** Emergency + hotline entries first, then alphabetical. */
-    @Query("SELECT * FROM referral_contacts ORDER BY isEmergency DESC, isHotline DESC, name ASC")
+    /** Sauti 116 (child helpline) pinned first, then emergency + hotline entries, then alphabetical. */
+    @Query("SELECT * FROM referral_contacts ORDER BY (phone = '116') DESC, isEmergency DESC, isHotline DESC, name ASC")
     fun getAllContacts(): Flow<List<ReferralContact>>
 
-    @Query("SELECT * FROM referral_contacts WHERE category = :category ORDER BY isHotline DESC, name ASC")
+    @Query("SELECT * FROM referral_contacts WHERE category = :category ORDER BY (phone = '116') DESC, isHotline DESC, name ASC")
     fun getContactsByCategory(category: ReferralCategory): Flow<List<ReferralContact>>
 
-    @Query("SELECT * FROM referral_contacts WHERE isEmergency = 1 ORDER BY isHotline DESC, name ASC")
+    @Query("SELECT * FROM referral_contacts WHERE isEmergency = 1 ORDER BY (phone = '116') DESC, isHotline DESC, name ASC")
     fun getEmergencyContacts(): Flow<List<ReferralContact>>
 
     @Query("SELECT * FROM referral_contacts WHERE name LIKE '%' || :query || '%' OR description LIKE '%' || :query || '%' OR location LIKE '%' || :query || '%' ORDER BY name ASC")
