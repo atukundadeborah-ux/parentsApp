@@ -7,6 +7,7 @@ import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.example.parentapp.core.security.AccessPolicy
 import com.example.parentapp.core.util.DateTimeFormatters
 import com.example.parentapp.core.util.Validators
 import com.example.parentapp.data.audit.AuditLogger
@@ -43,6 +44,8 @@ data class ChildEditorUiState(
     val errors: Map<String, String> = emptyMap(),
     val savedId: Long? = null,
     val deleted: Boolean = false,
+    /** Set when the signed-in role is not allowed to change child profiles (D-02). */
+    val formError: String? = null,
 )
 
 class ChildEditorViewModel(
@@ -113,6 +116,10 @@ class ChildEditorViewModel(
         }
         _uiState.update { it.copy(saving = true) }
         viewModelScope.launch {
+            if (!AccessPolicy.canEditChildProfiles(userSession.userRole.first())) {
+                _uiState.update { it.copy(saving = false, formError = AccessPolicy.DENIED_MESSAGE) }
+                return@launch
+            }
             val actorId = userSession.userId.first() ?: 0L
             val actorName = userSession.userName.first().orEmpty()
             val institutionId = userSession.institutionId.first()
@@ -155,6 +162,10 @@ class ChildEditorViewModel(
     fun delete() {
         val id = childId ?: return
         viewModelScope.launch {
+            if (!AccessPolicy.canEditChildProfiles(userSession.userRole.first())) {
+                _uiState.update { it.copy(formError = AccessPolicy.DENIED_MESSAGE) }
+                return@launch
+            }
             val child = childRepository.getChildById(id) ?: return@launch
             val actorId = userSession.userId.first() ?: 0L
             val actorName = userSession.userName.first().orEmpty()

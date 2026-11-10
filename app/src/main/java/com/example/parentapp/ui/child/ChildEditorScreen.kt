@@ -77,6 +77,9 @@ fun ChildEditorScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            state.formError?.let {
+                androidx.compose.material3.Text(it, color = MaterialTheme.colorScheme.error)
+            }
             ParentsAppTextField(
                 value = state.fullName,
                 onValueChange = viewModel::onFullName,
