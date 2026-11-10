@@ -9,7 +9,8 @@ class ChildRepository(private val childDao: ChildDao) {
     suspend fun count(): Int = childDao.count()
     suspend fun insertChild(child: ChildProfile): Long = childDao.insertChild(child)
     suspend fun updateChild(child: ChildProfile) = childDao.updateChild(child)
-    suspend fun deleteChild(child: ChildProfile) = childDao.deleteChild(child)
+    /** Removes the child and its activities, reminders and caregiver tasks (D-01). */
+    suspend fun deleteChild(child: ChildProfile) = childDao.deleteChildCascade(child)
     suspend fun getChildById(childId: Long): ChildProfile? = childDao.getChildById(childId)
     fun getChildByIdFlow(childId: Long): Flow<ChildProfile?> = childDao.getChildByIdFlow(childId)
     fun getAllChildren(): Flow<List<ChildProfile>> = childDao.getAllChildren()

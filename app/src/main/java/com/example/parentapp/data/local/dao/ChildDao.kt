@@ -5,6 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import com.example.parentapp.data.local.entity.ChildProfile
 import kotlinx.coroutines.flow.Flow
@@ -19,6 +20,27 @@ interface ChildDao {
 
     @Delete
     suspend fun deleteChild(child: ChildProfile)
+
+    @Query("DELETE FROM reminders WHERE childId = :childId")
+    suspend fun deleteRemindersForChild(childId: Long)
+
+    @Query("DELETE FROM caregiver_tasks WHERE childId = :childId")
+    suspend fun deleteTasksForChild(childId: Long)
+
+    @Query("DELETE FROM activities WHERE childId = :childId")
+    suspend fun deleteActivitiesForChild(childId: Long)
+
+    /**
+     * Deletes a child together with every record that belongs to it, in one transaction, so no
+     * orphaned activities, reminders or tasks are left behind (defect D-01).
+     */
+    @Transaction
+    suspend fun deleteChildCascade(child: ChildProfile) {
+        deleteRemindersForChild(child.id)
+        deleteTasksForChild(child.id)
+        deleteActivitiesForChild(child.id)
+        deleteChild(child)
+    }
 
     @Query("SELECT COUNT(*) FROM child_profiles")
     suspend fun count(): Int
