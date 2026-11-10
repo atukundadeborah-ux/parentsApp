@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Base window theme. The UI itself is fully Jetpack Compose (Material 3);
+         this theme only styles the window before Compose takes over. -->
+    <style name="Theme.ParentAPP" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/background_light</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLayoutInDisplayCutoutMode" tools:targetApi="o_mr1">shortEdges</item>
+    </style>
+
+    <!-- Cold-start splash (androidx.core:core-splashscreen). -->
+    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/primary_light_blue</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/parentsapp_icon</item>
+        <item name="postSplashScreenTheme">@style/Theme.ParentAPP</item>
+    </style>
+</resources>
