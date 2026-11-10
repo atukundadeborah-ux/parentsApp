@@ -74,6 +74,9 @@ fun TaskEditorScreen(
                 errorText = state.errors["caregiver"],
                 placeholder = if (state.caregivers.isEmpty()) "No caregivers registered" else "",
             )
+            state.formError?.let {
+                androidx.compose.material3.Text(it, color = androidx.compose.material3.MaterialTheme.colorScheme.error)
+            }
             ParentsAppTextField(
                 value = state.title,
                 onValueChange = viewModel::onTitle,

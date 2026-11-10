@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.example.parentapp.core.security.AccessPolicy
 import com.example.parentapp.core.util.Validators
 import com.example.parentapp.data.audit.AuditLogger
 import com.example.parentapp.data.local.entity.CaregiverTask
@@ -37,6 +38,8 @@ data class TaskEditorUiState(
     val dueMillis: Long = defaultDue(),
     val errors: Map<String, String> = emptyMap(),
     val done: Boolean = false,
+    /** Set when the signed-in role may not assign tasks (D-03). */
+    val formError: String? = null,
 ) {
     companion object {
         fun defaultDue(): Long = com.example.parentapp.core.util.DateTimeFormatters
@@ -102,6 +105,10 @@ class TaskEditorViewModel(
         }
         _uiState.update { it.copy(saving = true) }
         viewModelScope.launch {
+            if (!AccessPolicy.canAssignTasks(userSession.userRole.first())) {
+                _uiState.update { it.copy(saving = false, formError = AccessPolicy.DENIED_MESSAGE) }
+                return@launch
+            }
             val actorId = userSession.userId.first() ?: 0L
             val actorName = userSession.userName.first().orEmpty()
             val existing = taskId.takeIf { it > 0 }?.let { taskRepository.getTaskById(it) }
