@@ -1,6 +1,8 @@
 package com.example.parentapp.ui.task
 
+import android.app.Application
 import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.createSavedStateHandle
@@ -11,6 +13,7 @@ import com.example.parentapp.data.local.model.TaskWithNames
 import com.example.parentapp.data.repository.CaregiverTaskRepository
 import com.example.parentapp.di.appContainer
 import com.example.parentapp.domain.model.TaskStatus
+import com.example.parentapp.notifications.NotificationHelper
 import com.example.parentapp.domain.model.UserRole
 import com.example.parentapp.utils.session.UserSession
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,6 +31,7 @@ data class TaskDetailUiState(
 )
 
 class TaskDetailViewModel(
+    private val app: Application,
     private val taskRepository: CaregiverTaskRepository,
     private val userSession: UserSession,
     private val auditLogger: AuditLogger,
@@ -62,6 +66,9 @@ class TaskDetailViewModel(
             val actorId = userSession.userId.first() ?: 0L
             val actorName = userSession.userName.first().orEmpty()
             auditLogger.updated(actorId, actorName, "CaregiverTask", task.id, "Set '${task.title}' to ${status.label}")
+            if (status == TaskStatus.COMPLETED && task.status != TaskStatus.COMPLETED) {
+                taskRepository.getTaskWithNamesById(task.id)?.let { NotificationHelper.showTaskCompleted(app, it) }
+            }
             refresh()
         }
     }
@@ -81,7 +88,7 @@ class TaskDetailViewModel(
         val Factory = viewModelFactory {
             initializer {
                 val c = this.appContainer
-                TaskDetailViewModel(c.caregiverTaskRepository, c.userSession, c.auditLogger, createSavedStateHandle())
+                TaskDetailViewModel(this[APPLICATION_KEY] as Application, c.caregiverTaskRepository, c.userSession, c.auditLogger, createSavedStateHandle())
             }
         }
     }

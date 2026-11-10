@@ -24,6 +24,7 @@ import com.example.parentapp.MainActivity
 import com.example.parentapp.R
 import com.example.parentapp.core.util.DateTimeFormatters
 import com.example.parentapp.data.local.model.ReminderWithDetails
+import com.example.parentapp.data.local.model.TaskWithNames
 import com.example.parentapp.domain.model.Priority
 
 /**
@@ -49,6 +50,12 @@ object NotificationHelper {
     private const val SILENT_CHANNEL_ID = "parentsapp_reminders_silent"
     private const val SILENT_CHANNEL_NAME = "Silenced reminders"
     private const val SILENT_CHANNEL_DESCRIPTION = "Reminders whose alarm has been stopped"
+
+    /** Ordinary (non-alarm) updates such as "task completed" for the parent who assigned it. */
+    private const val TASK_CHANNEL_ID = "parentsapp_task_updates"
+    private const val TASK_CHANNEL_NAME = "Task updates"
+    private const val TASK_CHANNEL_DESCRIPTION = "Tells the assigning parent when a caregiver completes a task"
+    private const val TASK_NOTIFICATION_OFFSET = 1_000_000
 
     /** Long extra on the [MainActivity] launch intent: the reminder to open when the notification is tapped. */
     const val EXTRA_OPEN_REMINDER_ID = "extra_open_reminder_id"
@@ -94,7 +101,12 @@ object NotificationHelper {
                 enableVibration(false)
                 lockscreenVisibility = Notification.VISIBILITY_PUBLIC
             }
-            manager.createNotificationChannels(listOf(channel, silentChannel))
+            val taskChannel = NotificationChannel(
+                TASK_CHANNEL_ID,
+                TASK_CHANNEL_NAME,
+                NotificationManager.IMPORTANCE_DEFAULT,
+            ).apply { description = TASK_CHANNEL_DESCRIPTION }
+            manager.createNotificationChannels(listOf(channel, silentChannel, taskChannel))
         }
     }
 
@@ -230,6 +242,31 @@ object NotificationHelper {
         }
 
         NotificationManagerCompat.from(context).notify(notificationId, notification)
+    }
+
+    fun taskNotificationIdFor(taskId: Long): Int = TASK_NOTIFICATION_OFFSET + taskId.toInt()
+
+    /**
+     * Notifies the parent/guardian who assigned [item] that the caregiver has completed it
+     * (defect D-04). Data is local to the device, so the notification is posted on this device.
+     */
+    fun showTaskCompleted(context: Context, item: TaskWithNames) {
+        createReminderChannel(context)
+        if (!hasNotificationPermission(context)) return
+        val task = item.task
+        val caregiver = item.caregiverName ?: "The caregiver"
+        val message = "$caregiver completed \"${task.title}\" for ${item.childName}."
+        val notification = NotificationCompat.Builder(context, TASK_CHANNEL_ID)
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setColor(ACCENT_COLOR)
+            .setContentTitle("Task completed: ${task.title}")
+            .setContentText(message)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(message))
+            .setCategory(NotificationCompat.CATEGORY_STATUS)
+            .setContentIntent(openAppIntent(context, -1L, taskNotificationIdFor(task.id)))
+            .setAutoCancel(true)
+            .build()
+        NotificationManagerCompat.from(context).notify(taskNotificationIdFor(task.id), notification)
     }
 
     private fun titleFor(title: String, priority: Priority): String = when (priority) {
